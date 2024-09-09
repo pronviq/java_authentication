@@ -6,7 +6,6 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import lombok.RequiredArgsConstructor;
-import lombok.ToString;
 import ru.max.authentication.model.PersonModel;
 
 @RequiredArgsConstructor
@@ -31,6 +30,10 @@ public class PersonDetails implements UserDetails {
 
 	public PersonModel getPerson() {
 		return personModel;
+	}
+
+	public Long getPersonId() {
+		return personModel.getId();
 	}
 	
 	@Override

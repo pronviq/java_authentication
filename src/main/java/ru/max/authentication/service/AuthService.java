@@ -1,16 +1,12 @@
 package ru.max.authentication.service;
 
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,6 +30,7 @@ public class AuthService {
 	private final PasswordEncoder passwordEncoder;
 	private final PersonMapper personMapper;
 	private final TokenService tokenService;
+	private final RedisService redisService;
 
 	public ResponseEntity<?> login(LoginDTO person, HttpServletResponse response) {
 		UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(person.getUsername(), person.getPassword());
@@ -75,6 +72,8 @@ public class AuthService {
 		}
 
 		TokensDTO tokens = tokenService.refreshTokens(refreshToken);
+		String accessUUID = tokens.getAccessUUID();
+		redisService.banAccess(accessUUID);
 
 		int maxAgeSeconds = tokens.getRefreshLifeTimeMs().intValue() / 1000;
 		Cookie cookie = CookieUtil.generateRefreshCookie(tokens.getRefreshToken(), maxAgeSeconds);
@@ -87,8 +86,8 @@ public class AuthService {
 
 		TokenModel tokenModel = tokenService.verifyRefresh(refreshToken);
 		String accessUUID = tokenModel.getAccessUUID();
-		// blacklist access
-		
+		redisService.banAccess(accessUUID);
+
 		tokenService.deleteRefresh(tokenModel);
 
 		Cookie cookie = new Cookie("refreshToken", null);
@@ -96,9 +95,7 @@ public class AuthService {
 		response.addCookie(cookie);
 
 		return ResponseEntity.ok(null);
-	}
-
-	
+	}	
 }
 
 // refresh

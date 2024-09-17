@@ -10,7 +10,6 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public class AuthExceptions extends RuntimeException{
-	private LocalDateTime timestamp = LocalDateTime.now();
 	private final HttpStatus status;
 	private final String message;
 

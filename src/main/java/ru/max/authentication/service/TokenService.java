@@ -1,30 +1,19 @@
 package ru.max.authentication.service;
 
-import java.nio.charset.StandardCharsets;
-import java.security.Key;
 import java.time.Duration;
 import java.util.Date;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-import javax.crypto.SecretKey;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
-import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.java.Log;
 import lombok.extern.slf4j.Slf4j;
 import ru.max.authentication.config.EnvProps;
 import ru.max.authentication.dto.TokensDTO;
@@ -42,6 +31,7 @@ public class TokenService {
 	private final EnvProps envProps;
 	private final TokenRepository tokenRepository;
 	private final TokenMapper tokenMapper;
+	private final RedisService redisService;
 
 	public TokensDTO generateTokens(PersonModel personModel) {
 		String accessUUID = UUID.randomUUID().toString();
@@ -115,7 +105,10 @@ private String createToken(Long user_id, String accessUUID, String secret, Durat
 		} catch (Exception e) {
 			throw AuthExceptions.UNATHORIZED;
 		}
-		
+
+		if (redisService.isBannedAccess(jwt.getClaim("accessUUID").asString()))
+			throw AuthExceptions.UNATHORIZED;
+
 		return jwt.getClaim("user_id").asLong();
 	}
 }

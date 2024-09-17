@@ -3,28 +3,20 @@ package ru.max.authentication.controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import redis.clients.jedis.Jedis;
+import java.util.*;
 
-import ru.max.authentication.dto.PersonDTO;
 import ru.max.authentication.model.PersonModel;
 import ru.max.authentication.repository.PersonRepository;
-import ru.max.authentication.security.AuthProvider;
 import ru.max.authentication.security.PersonDetails;
-import ru.max.authentication.service.PersonService;
-import ru.max.authentication.service.RedisService;
+import ru.max.authentication.service.KafkaProducer;
 
 import java.io.IOException;
-import java.util.Map;
 import java.util.Optional;
 
-import org.springframework.core.env.Environment;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+// import org.hibernate.mapping.Map;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -33,10 +25,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 @RequestMapping("/")
 @RequiredArgsConstructor
 public class MainController {
-	private final Environment env;
-	private final PersonService personService;
-	private final RedisService redisService;
 	private final	PersonRepository personRepository;
+	private final KafkaProducer kafkaProducer;
 
 	@GetMapping("/secured")
 	public String secured() {
@@ -52,22 +42,34 @@ public class MainController {
 	@GetMapping("/me")
 	public String getMe() {
 		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-		// UserDetails user = (UserDetails) auth.getPrincipal();
 		PersonDetails personDetails = (PersonDetails) auth.getPrincipal();
 		return personDetails.toString();
-		// PersonModel personModel = personDetails.getPerson();
-		// System.out.println(personModel);
-		// return personModel.toString();
 	}	
 
-	@GetMapping("/unsecured")
-	public String unsecured() throws IOException {
+	@GetMapping("/ping")
+	public String ping() throws IOException {
+		return "pong from auth";
+	}
 
-		// Object value = redisService.getValue("val");
-		String UUID = "asddasddsaasads";
-		// redisService.banAccess(UUID);
+	@GetMapping("/sendMsg")
+	public String getFromMsg() {
+		System.out.println("sending");
+		kafkaProducer.sendMessage("Hello world");
+		return "done";
+	}
 
-		
-		return String.valueOf(redisService.isBannedAccess(UUID));
+	@GetMapping("/logins")
+	public String get() {
+			return "success";
+	}
+
+	@PostMapping("/logins")
+	public String post() {
+			return "success";
+	}
+	
+	@PostMapping("/logins1")
+	public String post1(@RequestBody Map<String, String> body ) {
+			return "success ur username" + body.get("username");
 	}
 }

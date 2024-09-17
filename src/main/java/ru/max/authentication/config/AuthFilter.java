@@ -2,8 +2,6 @@ package ru.max.authentication.config;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.Optional;
-
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -41,7 +39,11 @@ public class AuthFilter extends OncePerRequestFilter {
 		}
 
 		if (user_id != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-			PersonDetails personDetails = (PersonDetails) personService.loadById(user_id);
+			PersonModel personModel = new PersonModel();
+			personModel.setId(user_id);
+			
+			PersonDetails personDetails = new PersonDetails(personModel);
+			 
 			UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(personDetails, null, Collections.emptyList());
 			SecurityContextHolder.getContext().setAuthentication(token);
 		}

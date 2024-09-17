@@ -5,15 +5,12 @@ import java.util.Optional;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import ru.max.authentication.dto.PersonDTO;
 import ru.max.authentication.exception.AuthExceptions;
 import ru.max.authentication.model.PersonModel;
 import ru.max.authentication.repository.PersonRepository;
@@ -41,6 +38,7 @@ public class PersonService implements UserDetailsService {
 		if (person.isEmpty()) {
 			throw AuthExceptions.USER_NOT_FOUND;
 		}
+	
 		return new PersonDetails(person.get());
 	}
 

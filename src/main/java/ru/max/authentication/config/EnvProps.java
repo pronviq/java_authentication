@@ -5,10 +5,7 @@ import java.time.Duration;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import lombok.Data;
 import lombok.Getter;
-import ru.max.authentication.mapper.TokenMapper;
-import ru.max.authentication.repository.TokenRepository;
 
 // @Data
 @Getter

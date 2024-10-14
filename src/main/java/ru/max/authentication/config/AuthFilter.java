@@ -1,34 +1,41 @@
 package ru.max.authentication.config;
 
-import java.io.IOException;
-import java.util.Collections;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.context.SecurityContextImpl;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.User;
 import org.springframework.stereotype.Component;
-import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.server.ServerWebExchange;
+import org.springframework.web.server.WebFilter;
+import org.springframework.web.server.WebFilterChain;
 
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import ru.max.authentication.exception.AuthExceptions;
+import reactor.core.publisher.Mono;
 import ru.max.authentication.model.PersonModel;
 import ru.max.authentication.security.PersonDetails;
-import ru.max.authentication.service.PersonService;
 import ru.max.authentication.service.TokenService;
+
+import org.springframework.security.core.context.ReactiveSecurityContextHolder;
+
+import java.util.Collections;
 
 @Component
 @RequiredArgsConstructor
-@Slf4j
-public class AuthFilter extends OncePerRequestFilter {
+public class AuthFilter implements WebFilter {
 	private final TokenService tokenService;
-	private final PersonService personService;
+	// private final PersonModel personModel;
+	// private final PersonDetails personDetails;
 
 	@Override
-	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException, AuthExceptions {
-		String authHeader = request.getHeader("Authorization");
+	public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
+		ServerHttpRequest request = exchange.getRequest();
+		HttpHeaders headers = request.getHeaders();
+
+		String authHeader = headers.getFirst("Authorization");
 		Long user_id = null;
 		String accessToken = null;
 		if (authHeader != null && authHeader.startsWith("Bearer ")) {
@@ -45,10 +52,11 @@ public class AuthFilter extends OncePerRequestFilter {
 			PersonDetails personDetails = new PersonDetails(personModel);
 			 
 			UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(personDetails, null, Collections.emptyList());
-			SecurityContextHolder.getContext().setAuthentication(token);
+
+			SecurityContext securityContext = new SecurityContextImpl(token);
+			return chain.filter(exchange).contextWrite(ReactiveSecurityContextHolder.withSecurityContext(Mono.just(securityContext)));
 		}
 
-		filterChain.doFilter(request, response);
+		return chain.filter(exchange);
 	}
-	
 }

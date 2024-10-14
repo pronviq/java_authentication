@@ -1,5 +1,6 @@
 package ru.max.authentication.service;
 
+import java.util.ArrayList;
 import java.util.Optional;
 
 import org.springframework.http.ResponseEntity;
@@ -8,8 +9,6 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import ru.max.authentication.exception.AuthExceptions;
 import ru.max.authentication.model.PersonModel;
@@ -52,8 +51,13 @@ public class PersonService implements UserDetailsService {
 
 
 
-	public ResponseEntity<?> dropMe(HttpServletRequest request, HttpServletResponse response) {
+	// public ResponseEntity<?> dropMe(HttpServletRequest request, HttpServletResponse response) {
 
-		return ResponseEntity.ok(null);
+	// 	return ResponseEntity.ok(null);
+	// }
+
+	public ResponseEntity<?> searchUsers(String pattern) {
+		Optional<ArrayList<?>> data = personRepository.findAllByPattern(pattern);
+		return ResponseEntity.ok(data.get());
 	}
 }

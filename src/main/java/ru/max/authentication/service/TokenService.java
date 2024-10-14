@@ -67,6 +67,8 @@ private String createToken(Long user_id, String accessUUID, String secret, Durat
 		TokenModel tokenModel = verifyRefresh(refreshToken);
 		PersonModel personModel = tokenModel.getPerson();
 		deleteRefresh(tokenModel);
+		String accessUUID = tokenModel.getAccessUUID();
+		redisService.banAccess(accessUUID);
 		TokensDTO tokensDTO = generateTokens(personModel);
 		return tokensDTO;
 	}

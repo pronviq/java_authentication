@@ -1,13 +1,17 @@
 package ru.max.authentication.service;
 
+import java.util.HashMap;
+
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletResponse;
+// import jakarta.servlet.http.Cookie;
+// import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import ru.max.authentication.dto.LoginDTO;
@@ -32,7 +36,7 @@ public class AuthService {
 	private final TokenService tokenService;
 	private final RedisService redisService;
 
-	public ResponseEntity<?> login(LoginDTO person, HttpServletResponse response) {
+	public ResponseEntity<?> login(LoginDTO person, ServerHttpResponse response) {
 		UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(person.getUsername(), person.getPassword());
 		Authentication authToken = authProvider.authenticate(token);
 
@@ -41,13 +45,14 @@ public class AuthService {
 		TokensDTO tokens = tokenService.generateTokens(personModel);
 		
 		int maxAgeSeconds = tokens.getRefreshLifeTimeMs().intValue() / 1000;
-		Cookie cookie = CookieUtil.generateRefreshCookie(tokens.getRefreshToken(), maxAgeSeconds);
+		ResponseCookie cookie = CookieUtil.generateRefreshCookie(tokens.getRefreshToken(), maxAgeSeconds);
 		response.addCookie(cookie);
-
-		return ResponseEntity.ok(tokens.getAccessToken());
+		var responseMap = new HashMap<>();
+		responseMap.put("accessToken", tokens.getAccessToken());
+		return ResponseEntity.ok(responseMap);
 	}
 
-	public ResponseEntity<?> registration(PersonDTO personDTO, HttpServletResponse response) {
+	public ResponseEntity<?> registration(PersonDTO personDTO, ServerHttpResponse response) {
 		String username = personDTO.getUsername();
 		if (personService.findByUsername(username).isPresent())
 			throw AuthExceptions.USER_ALREADY_EXISTS;
@@ -60,29 +65,32 @@ public class AuthService {
 		TokensDTO tokens = tokenService.generateTokens(personModel);
 
 		int maxAgeSeconds = tokens.getRefreshLifeTimeMs().intValue() / 1000;
-		Cookie cookie = CookieUtil.generateRefreshCookie(tokens.getRefreshToken(), maxAgeSeconds);
+		ResponseCookie cookie = CookieUtil.generateRefreshCookie(tokens.getRefreshToken(), maxAgeSeconds);
 		response.addCookie(cookie);
 
-		return ResponseEntity.ok(tokens.getAccessToken());
+		var responseMap = new HashMap<>();
+		responseMap.put("accessToken", tokens.getAccessToken());
+		return ResponseEntity.ok(responseMap);
 	}
 
-	public ResponseEntity<?> refresh(String refreshToken, HttpServletResponse response) {
+	public ResponseEntity<?> refresh(String refreshToken, ServerHttpResponse response) {
 		if (refreshToken == null) {
 			throw AuthExceptions.UNATHORIZED;
 		}
 
 		TokensDTO tokens = tokenService.refreshTokens(refreshToken);
-		String accessUUID = tokens.getAccessUUID();
-		redisService.banAccess(accessUUID);
-
+		
 		int maxAgeSeconds = tokens.getRefreshLifeTimeMs().intValue() / 1000;
-		Cookie cookie = CookieUtil.generateRefreshCookie(tokens.getRefreshToken(), maxAgeSeconds);
+		ResponseCookie cookie = CookieUtil.generateRefreshCookie(tokens.getRefreshToken(), maxAgeSeconds);
 		response.addCookie(cookie);
 
-		return ResponseEntity.ok(tokens.getAccessToken());
+		var responseMap = new HashMap<>();
+		responseMap.put("accessToken", tokens.getAccessToken());
+		responseMap.put("username", tokens.getPerson().getUsername());
+		return ResponseEntity.ok(responseMap);
 	}
 
-	public ResponseEntity<?> logout(String refreshToken, HttpServletResponse response) {
+	public ResponseEntity<?> logout(String refreshToken, ServerHttpResponse response) {
 
 		TokenModel tokenModel = tokenService.verifyRefresh(refreshToken);
 		String accessUUID = tokenModel.getAccessUUID();
@@ -90,9 +98,9 @@ public class AuthService {
 
 		tokenService.deleteRefresh(tokenModel);
 
-		Cookie cookie = new Cookie("refreshToken", null);
-		cookie.setMaxAge(0);
+		ResponseCookie cookie = ResponseCookie.from("refreshToken", "").maxAge(0).build();
 		response.addCookie(cookie);
+
 
 		return ResponseEntity.ok(null);
 	}	
